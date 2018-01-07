@@ -1,0 +1,39 @@
+#!/bin/bash
+
+if ( [ "$#" = 0 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ] ); then
+  echo "
+DESCRIPTION
+  Command line interface to MITLM installed in a docker container. It assumes
+  that docker is installed, that it can be executed without sudo and that the
+  corresponding image is tagged as mitlm:active. It will only work if executed
+  from and referencing only files in the host's /Users, /home, /mnt, /media,
+  /opt or /tmp directories.
+
+SYNOPSIS
+  mitlm-docker COMMAND ARGUMENTS
+
+  COMMAND is any of the MITLM command line tools. To see the detailed help of
+  a command, just provide --help as argument, e.g.
+  mitlm-docker estimate-ngram --help.
+";
+  exit 0;
+fi
+
+OPTS=( --user $(id -u):$(id -g) );
+OPTS+=( --rm );
+OPTS+=( --interactive );
+OPTS+=( --log-driver none );
+OPTS+=( --workdir "$(pwd)" );
+OPTS+=( --env TERM=xterm-256color );
+[ -d "/Users" ] && OPTS+=( -v /Users:/Users );
+[ -d "/home" ]  && OPTS+=( -v /home:/home );
+[ -d "/mnt" ]   && OPTS+=( -v /mnt:/mnt );
+[ -d "/media" ] && OPTS+=( -v /media:/media );
+[ -d "/opt" ]   && OPTS+=( -v /opt:/opt );
+[ -d "/tmp" ]   && OPTS+=( -v /tmp:/tmp );
+
+CMD=("${@// /\\ }");
+CMD=("${CMD[@]//|/\\|}");
+
+docker run "${OPTS[@]}" mitlm:active \
+  bash -c "PATH=\".:$PATH:\$PATH\" ${CMD[*]}";
